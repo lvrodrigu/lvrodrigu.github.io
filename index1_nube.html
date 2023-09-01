@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+
+        <title>Babylon.js sample code</title>
+
+        <!-- Babylon.js -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.6.2/dat.gui.min.js"></script>
+        <script src="https://assets.babylonjs.com/generated/Assets.js"></script>
+        <script src="https://cdn.babylonjs.com/recast.js"></script>
+        <script src="https://cdn.babylonjs.com/ammo.js"></script>
+        <script src="https://cdn.babylonjs.com/havok/HavokPhysics_umd.js"></script>
+        <script src="https://cdn.babylonjs.com/cannon.js"></script>
+        <script src="https://cdn.babylonjs.com/Oimo.js"></script>
+        <script src="https://cdn.babylonjs.com/earcut.min.js"></script>
+        <script src="https://cdn.babylonjs.com/babylon.js"></script>
+        <script src="https://cdn.babylonjs.com/materialsLibrary/babylonjs.materials.min.js"></script>
+        <script src="https://cdn.babylonjs.com/proceduralTexturesLibrary/babylonjs.proceduralTextures.min.js"></script>
+        <script src="https://cdn.babylonjs.com/postProcessesLibrary/babylonjs.postProcess.min.js"></script>
+        <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.js"></script>
+        <script src="https://cdn.babylonjs.com/serializers/babylonjs.serializers.min.js"></script>
+        <script src="https://cdn.babylonjs.com/gui/babylon.gui.min.js"></script>
+        <script src="https://cdn.babylonjs.com/inspector/babylon.inspector.bundle.js"></script>
+
+        <style>
+            html, body {
+                overflow: hidden;
+                width: 100%;
+                height: 100%;
+                margin: 0;
+                padding: 0;
+            }
+
+            #renderCanvas {
+                width: 100%;
+                height: 100%;
+                touch-action: none;
+            }
+            
+            #canvasZone {
+                width: 100%;
+                height: 100%;
+            }
+        </style>
+    </head>
+<body>
+    <div id="canvasZone"><canvas id="renderCanvas"></canvas></div>
+    <script>
+        var canvas = document.getElementById("renderCanvas");
+
+        var startRenderLoop = function (engine, canvas) {
+            engine.runRenderLoop(function () {
+                if (sceneToRender && sceneToRender.activeCamera) {
+                    sceneToRender.render();
+                }
+            });
+        }
+
+        var engine = null;
+        var scene = null;
+        var sceneToRender = null;
+        var createDefaultEngine = function() { return new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: true, stencil: true,  disableWebGL2Support: false}); };
+        var createScene = function () {
+            var scene = new BABYLON.Scene(engine);
+        
+            // configuracion entorno
+            var light0 = new BABYLON.PointLight("Omni", new BABYLON.Vector3(0, 2, 8), scene);
+            var camera = new BABYLON.ArcRotateCamera("ArcRotateCamera", 1, 0.8, 20, new BABYLON.Vector3(0, 0, 0), scene);
+            camera.attachControl(canvas, true);
+        
+            // objeto emisor
+            var wind = BABYLON.Mesh.CreateBox("wind", 1.0, scene);
+            wind.scaling = new BABYLON.Vector3(1, 0.1, 0.1);
+        
+            // piso
+            var ground = BABYLON.Mesh.CreatePlane("ground", 50.0, scene);
+            ground.position = new BABYLON.Vector3(0, -10, 0);
+            ground.rotation = new BABYLON.Vector3(Math.PI / 2, 0, 0);
+        
+            ground.material = new BABYLON.StandardMaterial("groundMat", scene);
+            ground.material.backFaceCulling = false;
+            ground.material.diffuseColor = new BABYLON.Color3(0.3, 0.3, 1);
+        
+            // sistema de particulas
+            var particleSystem = new BABYLON.ParticleSystem("particles", 2000, scene);
+        
+            //textura particula
+            particleSystem.particleTexture = new BABYLON.Texture("textures/flare.png", scene);
+        
+            // que hace la particula
+            particleSystem.emitter = wind; // the starting object, the emitter
+            particleSystem.minEmitBox = new BABYLON.Vector3(-1, 0, 0); // Starting all from
+            particleSystem.maxEmitBox = new BABYLON.Vector3(1, 0, 0); // To...
+        
+            // colores
+            particleSystem.color1 = new BABYLON.Color4(0.7, 0.8, 1.0, 1.0);
+            particleSystem.color2 = new BABYLON.Color4(0.2, 0.5, 1.0, 1.0);
+            particleSystem.colorDead = new BABYLON.Color4(0, 0, 0.2, 0.0);
+        
+            // tamaño
+            particleSystem.minSize = 0.1;
+            particleSystem.maxSize = 0.5;
+        
+            // tiempo de vida
+            particleSystem.minLifeTime = 0.3;
+            particleSystem.maxLifeTime = 1.5;
+        
+            // emisiones
+            particleSystem.emitRate = 1500;
+        
+            // modo: BLENDMODE_ONEONE, or BLENDMODE_STANDARD
+            particleSystem.blendMode = BABYLON.ParticleSystem.BLENDMODE_ONEONE;
+        
+            // gravedad
+            particleSystem.gravity = new BABYLON.Vector3(0, -9.81, 0);
+        
+            // direccion de emision
+            particleSystem.direction1 = new BABYLON.Vector3(-1, 0, 3);
+            particleSystem.direction2 = new BABYLON.Vector3(7, 8, -3);
+        
+            // velocidad angular en radianes
+            particleSystem.minAngularSpeed = 0;
+            particleSystem.maxAngularSpeed = Math.PI;
+        
+            // velocidad
+            particleSystem.minEmitPower = 1;
+            particleSystem.maxEmitPower = 3;
+            particleSystem.updateSpeed = 0.005;
+        
+            // inicio del sistema de particulas
+            particleSystem.start();
+        
+            // animacion
+            var keys = [];
+            
+        
+            return scene;
+        }
+        
+                window.initFunction = async function() {
+                    
+                    
+                    
+                    var asyncEngineCreation = async function() {
+                        try {
+                        return createDefaultEngine();
+                        } catch(e) {
+                        console.log("the available createEngine function failed. Creating the default engine instead");
+                        return createDefaultEngine();
+                        }
+                    }
+
+                    window.engine = await asyncEngineCreation();
+        if (!engine) throw 'engine should not be null.';
+        startRenderLoop(engine, canvas);
+        window.scene = createScene();};
+        initFunction().then(() => {sceneToRender = scene                    
+        });
+
+        // Resize
+        window.addEventListener("resize", function () {
+            engine.resize();
+        });
+    </script>
+</body>
+</html>
